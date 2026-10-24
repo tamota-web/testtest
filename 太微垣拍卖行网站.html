@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⛏ MC 拍卖会</title>
+<style>
+:root{
+  --green:#5ec24a; --green-d:#3d8f2f; --bg:#15181c; --panel:#1f242a;
+  --panel2:#272d35; --border:#333c46; --gold:#f0b429; --red:#e05353;
+  --text:#e8edf2; --muted:#8b98a5;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  font-family:"Microsoft YaHei","PingFang SC","Segoe UI",sans-serif;
+  background:var(--bg);color:var(--text);overflow:hidden;
+}
+[hidden]{display:none!important}
+button{
+  font-family:inherit;cursor:pointer;border:none;border-radius:6px;
+  padding:8px 14px;font-size:14px;font-weight:700;
+  background:var(--green);color:#0b1508;transition:.15s;
+}
+button:hover{background:#6fd85a}
+button:active{transform:scale(.97)}
+button.ghost{background:transparent;border:1px solid var(--border);color:var(--text)}
+button.ghost:hover{background:var(--panel2)}
+button.danger{background:var(--red);color:#fff}
+button.danger:hover{background:#ef6b6b}
+input{
+  font-family:inherit;font-size:14px;padding:9px 12px;border-radius:6px;
+  border:1px solid var(--border);background:#12151a;color:var(--text);outline:none;
+}
+input:focus{border-color:var(--green)}
+
+/* ---------- 登录 ---------- */
+#login{
+  position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+  background:radial-gradient(circle at 50% 30%,#24303a,#0d1013 70%);z-index:100;
+}
+.login-card{
+  width:360px;background:var(--panel);border:1px solid var(--border);
+  border-radius:14px;padding:34px 30px;text-align:center;
+  box-shadow:0 20px 60px rgba(0,0,0,.6);
+}
+.login-card .logo{font-size:46px;line-height:1}
+.login-card h1{font-size:24px;margin:10px 0 6px;letter-spacing:2px}
+.login-card .sub{color:var(--muted);font-size:13px;margin-bottom:22px}
+.login-card input{width:100%;margin-bottom:12px;text-align:center}
+.login-card button.wide{width:100%;padding:11px;font-size:15px;margin-top:4px}
+.login-card .tip{margin-top:18px;font-size:12px;color:var(--muted);line-height:1.7}
+.login-card .tip b{color:var(--gold)}
+
+/* ---------- 主界面 ---------- */
+#app{display:flex;flex-direction:column;height:100vh}
+header{
+  display:flex;align-items:center;gap:12px;padding:10px 18px;
+  background:var(--panel);border-bottom:1px solid var(--border);flex:0 0 auto;
+}
+.brand{font-size:18px;font-weight:800;letter-spacing:1px;color:var(--green)}
+.spacer{flex:1}
+.userinfo{font-size:13px;color:var(--muted)}
+.userinfo b{color:var(--text);font-size:15px}
+.tag{padding:2px 8px;border-radius:20px;font-size:11px;margin-left:6px}
+.tag.host{background:rgba(240,180,41,.18);color:var(--gold)}
+.tag.player{background:rgba(94,194,74,.18);color:var(--green)}
+
+main{
+  flex:1 1 auto;display:grid;grid-template-columns:1fr 300px;
+  gap:14px;padding:14px;min-height:0;overflow:hidden;
+}
+.stage{
+  background:var(--panel);border:1px solid var(--border);border-radius:12px;
+  display:flex;align-items:center;justify-content:center;
+  overflow:auto;padding:18px;position:relative;
+}
+.stage-empty{color:var(--muted);font-size:16px;letter-spacing:1px}
+.stage-card{display:flex;flex-direction:column;align-items:center;gap:10px;width:100%;max-width:540px}
+.lotno{font-size:12px;color:var(--muted);letter-spacing:2px}
+.stage-img-wrap{
+  width:200px;height:200px;border-radius:10px;background:#12151a;
+  border:1px solid var(--border);position:relative;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+}
+.stage-img-wrap img{width:100%;height:100%;object-fit:contain}
+.stage-img-wrap .ph{font-size:64px;position:absolute}
+.stage-card h2{font-size:24px;letter-spacing:1px}
+.price-row{display:flex;gap:30px}
+.pbox{display:flex;flex-direction:column;align-items:center;gap:2px}
+.pbox span{font-size:12px;color:var(--muted)}
+.pbox b{font-size:18px;color:var(--text)}
+.pbox:last-child b{color:var(--gold)}
+.current-price{
+  font-size:14px;color:var(--muted);background:var(--panel2);
+  padding:8px 22px;border-radius:30px;border:1px solid var(--border);
+}
+.current-price b{font-size:22px;color:var(--gold);margin:0 4px}
+.current-price span{font-size:13px;color:var(--green)}
+.timer{font-size:34px;font-weight:800;letter-spacing:3px;color:var(--green);font-variant-numeric:tabular-nums}
+.timerbar{width:100%;max-width:320px;height:7px;background:#12151a;border-radius:6px;overflow:hidden;border:1px solid var(--border)}
+.timerbar>div{height:100%;width:0%;background:linear-gradient(90deg,#5ec24a,#f0b429,#e05353);transition:width .25s linear}
+.banner{padding:10px 22px;border-radius:10px;font-size:16px;font-weight:700}
+.banner.sold{background:rgba(94,194,74,.15);border:1px solid var(--green);color:var(--green)}
+.banner.unsold{background:rgba(224,83,83,.12);border:1px solid var(--red);color:var(--red)}
+
+/* 侧栏 */
+.side{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;min-height:0}
+.side h3{font-size:14px;color:var(--muted);letter-spacing:1px;margin-bottom:10px;flex:0 0 auto}
+#lotList{list-style:none;overflow-y:auto;flex:1 1 auto;display:flex;flex-direction:column;gap:6px}
+#lotList li{
+  display:flex;align-items:center;gap:8px;padding:9px 10px;border-radius:8px;
+  background:var(--panel2);font-size:13px;border:1px solid transparent;
+}
+#lotList li.cur{border-color:var(--green);box-shadow:0 0 0 1px rgba(94,194,74,.3)}
+#lotList .no{width:22px;color:var(--muted);font-weight:700;flex:0 0 auto}
+#lotList .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#lotList .tag{flex:0 0 auto;background:transparent;padding:0;font-size:11px;margin:0}
+#lotList li.sold .tag{color:var(--green)}
+#lotList li.unsold .tag{color:var(--red)}
+#lotList li.active .tag{color:var(--gold);animation:blink 1.2s infinite}
+#lotList li.empty{opacity:.4}
+@keyframes blink{50%{opacity:.35}}
+
+/* 聊天 */
+.chat{
+  flex:0 0 200px;display:flex;flex-direction:column;gap:8px;
+  background:var(--panel);border-top:1px solid var(--border);padding:10px 14px;
+}
+.chatlog{
+  flex:1;overflow-y:auto;background:#12151a;border:1px solid var(--border);
+  border-radius:8px;padding:8px 12px;font-size:13.5px;line-height:1.85;
+}
+.msg .u{color:var(--green);font-weight:700;margin-right:8px}
+.msg.sys{color:var(--muted);font-style:italic}
+.msg.bid{color:var(--gold)}
+.msg.bid .u{color:var(--gold)}
+.chatbar{display:flex;gap:8px;flex:0 0 auto}
+.chatbar input{flex:1}
+
+/* 编辑器弹窗 */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px}
+.modal-card{width:min(920px,100%);max-height:90vh;background:var(--panel);border:1px solid var(--border);border-radius:14px;display:flex;flex-direction:column;overflow:hidden}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border)}
+.modal-head h3{font-size:16px}
+.erow{display:grid;grid-template-columns:36px 1fr 1.3fr 100px 100px;gap:8px;align-items:center;padding:5px 18px}
+.erow-head{font-size:12px;color:var(--muted);padding-top:10px}
+.editor-rows{overflow-y:auto;padding-bottom:10px}
+.erow .en{color:var(--muted);font-size:13px;font-weight:700;text-align:center}
+.erow input{padding:7px 9px;font-size:13px;width:100%}
+.modal-foot{display:flex;justify-content:space-between;padding:14px 18px;border-top:1px solid var(--border)}
+</style>
+</head>
+<body>
+
+<!-- ============ 登录页 ============ -->
+<div id="login">
+  <div class="login-card">
+    <div class="logo">⛏</div>
+    <h1>MC 拍卖会</h1>
+    <p class="sub">输入你的游戏 ID 进入拍卖现场</p>
+    <input id="loginName" placeholder="游戏ID（例如 Steve）" autocomplete="off">
+    <input id="loginPass" type="password" placeholder="密码（默认 123456）">
+    <button class="wide" onclick="doLogin()">进入拍卖会</button>
+    <p class="tip">
+      主办方账号：<b>TOTHEMOON</b><br>
+      普通玩家：任意游戏ID + 密码 <b>123456</b>
+    </p>
+  </div>
+</div>
+
+<!-- ============ 主界面 ============ -->
+<div id="app" hidden>
+  <header>
+    <div class="brand">⛏ MC 拍卖会</div>
+    <div class="spacer"></div>
+    <div class="userinfo">当前账号 <b id="whoami"></b><span id="roleTag" class="tag player">玩家</span></div>
+    <button id="editBtn" class="ghost" hidden onclick="openEditor()">⚙ 设置拍品</button>
+    <button id="startBtn" hidden onclick="startAuction()">▶ 开始竞拍</button>
+    <button class="ghost" onclick="doLogout()">退出</button>
+  </header>
+
+  <main>
+    <section class="stage">
+      <div id="stageEmpty" class="stage-empty">⏳ 等待主办方开始竞拍…</div>
+      <div id="stageCard" class="stage-card" hidden>
+        <div class="lotno" id="lotNo">拍品 #1</div>
+        <div class="stage-img-wrap">
+          <img id="stageImg" alt="">
+          <div class="ph" id="stageImgPh">🎁</div>
+        </div>
+        <h2 id="stageName">—</h2>
+        <div class="price-row">
+          <div class="pbox"><span>起拍价</span><b id="stageStart">0</b></div>
+          <div class="pbox"><span>一口价</span><b id="stageBuyout">无</b></div>
+        </div>
+        <div class="current-price">当前最高价 <b id="stagePrice">—</b><span id="stageLeader"></span></div>
+        <div class="timer" id="stageTimer">--:--</div>
+        <div class="timerbar"><div id="timerFill"></div></div>
+        <div class="banner" id="resultBanner" hidden></div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <h3>拍品列表</h3>
+      <ul id="lotList"></ul>
+    </aside>
+  </main>
+
+  <section class="chat">
+    <div class="chatlog" id="chatLog"></div>
+    <div class="chatbar">
+      <input id="chatInput" placeholder="输入出价金额（如 500）或聊天内容，回车发送" autocomplete="off">
+      <button onclick="sendMessage()">发送</button>
+    </div>
+  </section>
+</div>
+
+<!-- ============ 拍品编辑器 ============ -->
+<div id="editorModal" class="modal" hidden>
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3>设置拍品（共 10 件）</h3>
+      <button class="ghost" onclick="closeEditor()">关闭</button>
+    </div>
+    <div class="erow erow-head">
+      <span>#</span><span>拍品名称</span><span>图片 URL</span><span>起拍价</span><span>一口价</span>
+    </div>
+    <div id="editorRows" class="editor-rows"></div>
+    <div class="modal-foot">
+      <button class="danger" onclick="resetAuction()">↺ 重置整场拍卖会</button>
+      <button onclick="startAuction()">▶ 开始竞拍</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ======================= 配置区（可自行修改） ======================= */
+const STORAGE_KEY   = 'mc_auction_v1';   // localStorage 键名
+const DEFAULT_PASS  = '123456';          // 默认密码
+const HOST_ID       = 'TOTHEMOON';       // 主办方账号（游戏ID）
+const LOT_COUNT     = 10;                // 每场拍品数量
+const LOT_DURATION  = 5 * 60 * 1000;     // 单件拍品最长 5 分钟
+const IDLE_TIMEOUT  = 60 * 1000;         // 1 分钟无人加价自动结束
+const NEXT_DELAY    = 3000;              // 成交后 3 秒进入下一件
+/* =================================================================== */
+
+let state = defaultState();
+let currentUser = null;
+let isHost = false;
+
+/* ---------------- 工具函数 ---------------- */
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g,
+  c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function defaultState(){
+  return {
+    lots: Array.from({length: LOT_COUNT}, (_, i) => ({
+      index: i, name: '', img: '', startPrice: 100, buyout: 0,
+      status: 'pending',      // pending | active | sold | unsold | empty
+      price: 0, leader: null, winner: null
+    })),
+    phase: 'idle',            // idle | running | finished
+    current: -1,
+    lotStartAt: 0,
+    lastBidAt: 0,
+    nextAt: 0,
+    chat: [],
+    updatedAt: 0
+  };
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw) Object.assign(state, JSON.parse(raw));
+  }catch(e){ console.warn('读取状态失败', e); }
+}
+function saveState(){
+  state.updatedAt = Date.now();
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+  catch(e){ console.warn('保存状态失败', e); }
+}
+
+function pushChat(user, text, type){
+  state.chat.push({user, text, type, ts: Date.now()});
+  if(state.chat.length > 300) state.chat = state.chat.slice(-300);
+  saveState();
+}
+function addSys(text){ pushChat('系统', text, 'sys'); }
+
+/* ---------------- 登录 / 登出 ---------------- */
+function doLogin(){
+  const name = $('loginName').value.trim();
+  const pass = $('loginPass').value;
+  if(!name) return alert('请输入你的游戏 ID');
+  if(pass !== DEFAULT_PASS) return alert('密码错误！默认密码为 ' + DEFAULT_PASS);
+
+  currentUser = name;
+  isHost = (name.toLowerCase() === HOST_ID.toLowerCase());
+  sessionStorage.setItem('mc_auction_user', name);
+  enterApp();
+}
+
+function doLogout(){
+  sessionStorage.removeItem('mc_auction_user');
+  location.reload();
+}
+
+function enterApp(){
+  $('login').hidden = true;
+  $('app').hidden = false;
+
+  loadState();
+
+  $('whoami').textContent = currentUser;
+  $('roleTag').textContent = isHost ? '主办方' : '玩家';
+  $('roleTag').className = 'tag ' + (isHost ? 'host' : 'player');
+
+  if(isHost){
+    $('editBtn').hidden = false;
+    $('startBtn').hidden = false;
+    initEditor();
+  }
+  render();
+}
+
+/* ---------------- 主办方：拍品编辑 ---------------- */
+function initEditor(){
+  const wrap = $('editorRows');
+  wrap.innerHTML = '';
+  state.lots.forEach((lot, i) => {
+    const row = document.createElement('div');
+    row.className = 'erow';
+    row.innerHTML =
+      `<span class="en">${i+1}</span>
+       <input class="en-in" data-i="${i}" data-f="name" placeholder="拍品名称">
+       <input class="en-in" data-i="${i}" data-f="img" placeholder="图片URL（可选）">
+       <input class="en-in" type="number" min="0" data-i="${i}" data-f="startPrice" placeholder="起拍价">
+       <input class="en-in" type="number" min="0" data-i="${i}" data-f="buyout" placeholder="一口价(0=无)">`;
+    wrap.appendChild(row);
+  });
+  syncEditorValues();
+
+  wrap.addEventListener('input', e => {
+    const t = e.target;
+    if(!t.classList.contains('en-in')) return;
+    const i = +t.dataset.i, f = t.dataset.f;
+    let v = t.value;
+    if(f === 'startPrice' || f === 'buyout') v = Math.max(0, parseInt(v) || 0);
+    state.lots[i][f] = v;
+    saveState();
+  });
+}
+
+function syncEditorValues(){
+  document.querySelectorAll('.en-in').forEach(inp => {
+    inp.value = state.lots[+inp.dataset.i][inp.dataset.f];
+  });
+}
+
+function openEditor(){
+  if(!isHost) return;
+  loadState();
+  syncEditorValues();
+  $('editorModal').hidden = false;
+}
+function closeEditor(){ $('editorModal').hidden = true; }
+
+function resetAuction(){
+  if(!confirm('确定要重置整场拍卖会吗？所有拍品设置与竞拍记录都会被清空！')) return;
+  localStorage.removeItem(STORAGE_KEY);
+  location.reload();
+}
+
+/* ---------------- 拍卖核心流程 ---------------- */
+function startAuction(){
+  if(!isHost) return;
+  loadState();
+
+  const valid = state.lots.filter(l => l.name.trim());
+  if(valid.length === 0) return alert('请先至少设置一件拍品（填写名称）');
+  if(state.phase === 'running' && !confirm('拍卖会正在进行中，确定要重新开始吗？')) return;
+  if(!confirm(`确定开始竞拍？共 ${valid.length} 件拍品将按序号依次拍卖。`)) return;
+
+  state.lots.forEach(l => {
+    l.status  = l.name.trim() ? 'pending' : 'empty';
+    l.price   = 0;
+    l.leader  = null;
+    l.winner  = null;
+  });
+  state.phase      = 'running';
+  state.current    = -1;
+  state.nextAt     = 0;
+  state.lotStartAt = 0;
+  state.lastBidAt  = 0;
+  state.chat       = [];
+
+  pushChat('系统', `🎬 拍卖会开始！共 ${valid.length} 件拍品，每件最长 5 分钟、1 分钟无人加价即成交。`, 'sys');
+  saveState();
+  closeEditor();
+  nextLot();
+}
+
+function nextLot(){
+  let idx = -1;
+  for(let i = state.current + 1; i < state.lots.length; i++){
+    if(state.lots[i].status === 'pending'){ idx = i; break; }
+  }
+  if(idx === -1){
+    state.phase = 'finished';
+    state.current = -1;
+    state.nextAt = 0;
+    addSys('🏁 本场拍卖会全部结束，感谢参与！');
+    saveState();
+    render();
+    return;
+  }
+
+  state.current    = idx;
+  state.lotStartAt = Date.now();
+  state.lastBidAt  = 0;
+  state.nextAt     = 0;
+
+  const lot = state.lots[idx];
+  lot.status = 'active';
+  lot.price  = 0;
+  lot.leader = null;
+
+  addSys(`【${lot.name}】开始竞拍！起拍价 ${lot.startPrice}` +
+         (lot.buyout > 0 ? `，一口价 ${lot.buyout}` : '') + ' —— 请在聊天框输入数字出价');
+  saveState();
+  render();
+}
+
+function getEndAt(){
+  const lot = state.lots[state.current];
+  if(!lot) return 0;
+  const totalEnd = state.lotStartAt + LOT_DURATION;
+  const idleEnd  = (state.lastBidAt || state.lotStartAt) + IDLE_TIMEOUT;
+  return Math.min(totalEnd, idleEnd);
+}
+
+function endLot(){
+  const lot = state.lots[state.current];
+  if(!lot) return;
+
+  if(lot.leader){
+    lot.status = 'sold';
+    lot.winner = lot.leader;
+    addSys(`🎉 恭喜玩家「${lot.winner}」以 ${lot.price} 金币拍得【${lot.name}】！`);
+  }else{
+    lot.status = 'unsold';
+    addSys(`😢 【${lot.name}】无人出价，流拍。`);
+  }
+  state.nextAt = Date.now() + NEXT_DELAY;
+  saveState();
+  render();
+}
+
+/* ---------------- 出价逻辑 ---------------- */
+function sendMessage(){
+  const input = $('chatInput');
+  const text = input.value.trim();
+  if(!text) return;
+  input.value = '';
+
+  loadState();
+  const lot = state.current >= 0 ? state.lots[state.current] : null;
+
+  // 纯数字 + 正在竞拍 = 出价
+  if(/^\d+$/.test(text) && state.phase === 'running' && lot && lot.status === 'active'){
+    doBid(parseInt(text, 10));
+    return;
+  }
+  pushChat(currentUser, text, 'chat');
+  render();
+}
+
+function doBid(amount){
+  const lot = state.lots[state.current];
+  if(!lot || lot.status !== 'active') return;
+
+  const min = lot.leader ? lot.price + 1 : lot.startPrice;
+  if(amount < min){
+    addSys(`❌ 出价无效：至少需要 ${min} 金币`);
+    render();
+    return;
+  }
+
+  // 触发一口价：立即成交
+  if(lot.buyout > 0 && amount >= lot.buyout){
+    lot.price  = lot.buyout;
+    lot.leader = currentUser;
+    lot.status = 'sold';
+    lot.winner = currentUser;
+    pushChat(currentUser, `一口价 ${lot.buyout} 金币！`, 'bid');
+    addSys(`🎉 玩家「${currentUser}」触发一口价，直接拍得【${lot.name}】！`);
+    state.nextAt = Date.now() + NEXT_DELAY;
+    saveState();
+    render();
+    return;
+  }
+
+  // 普通加价
+  lot.price  = amount;
+  lot.leader = currentUser;
+  state.lastBidAt = Date.now();
+  pushChat(currentUser, `出价 ${amount} 金币`, 'bid');
+  saveState();
+  render();
+}
+
+/* ---------------- 渲染 ---------------- */
+function render(){
+  if(!currentUser) return;
+  renderStage();
+  renderList();
+  renderChat();
+  updateTimer();
+}
+
+function renderStage(){
+  const lot = state.current >= 0 ? state.lots[state.current] : null;
+  const empty = $('stageEmpty');
+  const card  = $('stageCard');
+
+  if(!lot){
+    card.hidden  = true;
+    empty.hidden = false;
+    empty.textContent =
+      state.phase === 'finished' ? '🏁 本场拍卖会已结束' :
+      state.phase === 'running'  ? '⏳ 准备中…' :
+                                   '⏳ 等待主办方开始竞拍…';
+    return;
+  }
+
+  empty.hidden = true;
+  card.hidden  = false;
+
+  $('lotNo').textContent      = `拍品 #${lot.index + 1}`;
+  $('stageName').textContent  = lot.name || '未命名拍品';
+  $('stageStart').textContent = lot.startPrice;
+  $('stageBuyout').textContent = lot.buyout > 0 ? lot.buyout : '无';
+
+  // 图片
+  const img = $('stageImg'), ph = $('stageImgPh');
+  if(lot.img){
+    img.hidden = false; ph.hidden = true;
+    img.onerror = () => { img.hidden = true; ph.hidden = false; };
+    img.src = lot.img;
+  }else{
+    img.hidden = true; ph.hidden = false;
+    img.removeAttribute('src');
+  }
+
+  // 当前价
+  $('stagePrice').textContent  = lot.leader ? lot.price : '—';
+  $('stageLeader').textContent = lot.leader ? `（${lot.leader}）` : '';
+
+  // 结果横幅
+  const banner = $('resultBanner');
+  if(lot.status === 'sold'){
+    banner.hidden = false;
+    banner.className = 'banner sold';
+    banner.innerHTML = `🎉 成交！<b>${esc(lot.winner)}</b> 以 <b>${lot.price}</b> 金币拍得【${esc(lot.name)}】`;
+  }else if(lot.status === 'unsold'){
+    banner.hidden = false;
+    banner.className = 'banner unsold';
+    banner.textContent = '😢 无人出价，本件流拍';
+  }else{
+    banner.hidden = true;
+  }
+}
+
+function renderList(){
+  $('lotList').innerHTML = state.lots.map((l, i) => {
+    let tag = '待拍', cls = 'pending';
+    if(l.status === 'sold'){        tag = `✔ ${l.winner} ${l.price}`; cls = 'sold'; }
+    else if(l.status === 'unsold'){ tag = '流拍';                     cls = 'unsold'; }
+    else if(l.status === 'active'){ tag = '竞拍中';                   cls = 'active'; }
+    else if(l.status === 'empty'){  tag = '空';                       cls = 'empty'; }
+
+    const name = l.name || '（未设置）';
+    const cur  = (state.current === i) ? ' cur' : '';
+    return `<li class="${cls}${cur}">
+      <span class="no">${i + 1}</span>
+      <span class="nm">${esc(name)}</span>
+      <span class="tag">${esc(tag)}</span>
+    </li>`;
+  }).join('');
+}
+
+function renderChat(){
+  const log = $('chatLog');
+  log.innerHTML = state.chat.map(m => {
+    if(m.type === 'sys') return `<div class="msg sys">${esc(m.text)}</div>`;
+    if(m.type === 'bid') return `<div class="msg bid"><span class="u">${esc(m.user)}</span>${esc(m.text)}</div>`;
+    return `<div class="msg"><span class="u">${esc(m.user)}</span>${esc(m.text)}</div>`;
+  }).join('');
+  log.scrollTop = log.scrollHeight;
+}
+
+function updateTimer(){
+  const el = $('stageTimer');
+  const fill = $('timerFill');
+  if(!el) return;
+
+  const lot = state.current >= 0 ? state.lots[state.current] : null;
+  if(!lot || lot.status !== 'active' || state.phase !== 'running'){
+    el.textContent = '--:--';
+    el.style.color = 'var(--muted)';
+    fill.style.width = '0%';
+    return;
+  }
+
+  const left = Math.max(0, getEndAt() - Date.now());
+  const s = Math.ceil(left / 1000);
+  el.textContent = `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+  el.style.color = s <= 10 ? 'var(--red)' : 'var(--green)';
+
+  const idleLeft = Math.max(0, (state.lastBidAt || state.lotStartAt) + IDLE_TIMEOUT - Date.now());
+  fill.style.width = Math.min(100, idleLeft / IDLE_TIMEOUT * 100) + '%';
+}
+
+/* ---------------- 主循环（同步 + 计时） ---------------- */
+function tick(){
+  if(!currentUser) return;
+
+  // 1) 与其他标签页同步状态
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const s = JSON.parse(raw);
+      if(s.updatedAt !== state.updatedAt){
+        Object.assign(state, s);
+        render();
+      }
+    }
+  }catch(e){}
+
+  // 2) 计时判定
+  if(state.phase === 'running'){
+    const now = Date.now();
+    if(state.nextAt){
+      if(now >= state.nextAt) nextLot();
+    }else if(state.current >= 0){
+      const lot = state.lots[state.current];
+      if(lot && lot.status === 'active' && now >= getEndAt()) endLot();
+    }
+  }
+
+  // 3) 刷新倒计时
+  updateTimer();
+}
+
+/* ---------------- 事件绑定 & 启动 ---------------- */
+$('loginPass').addEventListener('keydown', e => { if(e.key === 'Enter') doLogin(); });
+$('chatInput').addEventListener('keydown', e => { if(e.key === 'Enter') sendMessage(); });
+
+window.addEventListener('storage', e => {
+  if(e.key === STORAGE_KEY && currentUser){
+    loadState();
+    render();
+  }
+});
+
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = sessionStorage.getItem('mc_auction_user');
+  if(saved){
+    currentUser = saved;
+    isHost = (saved.toLowerCase() === HOST_ID.toLowerCase());
+    enterApp();
+  }
+  setInterval(tick, 250);
+});
+</script>
+</body>
+</html>
